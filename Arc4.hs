@@ -6,26 +6,22 @@ module Arc4 (
 ) where
 
 import qualified Data.ByteString as B
-import qualified Data.IntMap.Strict as I
+import Data.Array
 import Data.Word8
-import Data.Maybe
 import Data.Bits
 
-type S = I.IntMap Word8
+type S = Array Word8 Word8
 data Arc4State = Arc4State S Word8 Word8
 
-lookupS :: Word8 -> S -> Word8
-lookupS i s = fromJust $ I.lookup (fromIntegral i) s
-
 swapS :: S -> Word8 -> Word8 -> S
-swapS s a b = I.insert (fromIntegral b) (lookupS a s) $ I.insert (fromIntegral a) (lookupS b s) s
+swapS s a b = s // [(a, s!b), (b, s!a)]
 
 initState :: B.ByteString -> Arc4State
 initState key =
   let keyBytes = take 256 $ cycle $ B.unpack key
-      initialS = I.fromList $ map (\i -> (i, fromIntegral i)) [0..255]
+      initialS = listArray (0, 255) [0..255]
       keySchedule (s, j) (i, k) =
-        let j' = j + lookupS i s + k
+        let j' = j + s!i + k
         in (swapS s i j', j')
       (state, _) = foldl keySchedule (initialS, 0) $ zip [0..255] keyBytes
   in Arc4State state 0 0
@@ -33,9 +29,9 @@ initState key =
 nextKeystreamByte :: Arc4State -> (Arc4State, Word8)
 nextKeystreamByte (Arc4State s i j) =
   let i' = i + 1
-      j' = j + lookupS i' s
+      j' = j + s!i'
       s' = swapS s i' j'
-      k  = lookupS (lookupS i' s + lookupS j' s) s
+      k  = s ! (s!i' + s!j')
   in (Arc4State s' i' j', k)
 
 keystream :: Arc4State -> [Word8]
