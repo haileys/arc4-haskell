@@ -20,15 +20,13 @@ lookupS i s = fromJust $ I.lookup (fromIntegral i) s
 swapS :: S -> Word8 -> Word8 -> S
 swapS s a b = I.insert (fromIntegral b) (lookupS a s) $ I.insert (fromIntegral a) (lookupS b s) s
 
-keySchedule :: B.ByteString -> S -> Word8 -> Int -> S
-keySchedule _ s _ 256 = s
-keySchedule k s j i =
-    let j' = j + lookupS (fromIntegral i) s + B.index k (mod i $ B.length k)
-    in keySchedule k (swapS s (fromIntegral i) j') j' (i + 1)
-
 initState :: B.ByteString -> Arc4State
 initState key =
   let initialS = I.fromList $ map (\i -> (i, fromIntegral i)) [0..255]
+      keySchedule _ s _ 256 = s
+      keySchedule k s j i =
+        let j' = j + lookupS (fromIntegral i) s + B.index k (mod i $ B.length k)
+        in keySchedule k (swapS s (fromIntegral i) j') j' (i + 1)
   in Arc4State (keySchedule key initialS 0 0) 0 0
 
 nextKeystreamByte :: Arc4State -> (Arc4State, Word8)
