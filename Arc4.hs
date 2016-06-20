@@ -18,12 +18,12 @@ swapS s a b = s // [(a, s!b), (b, s!a)]
 
 initState :: B.ByteString -> Arc4State
 initState key =
-  let keyBytes = take 256 $ cycle $ B.unpack key
+  let keyCycle = cycle $ B.unpack key
       initialS = listArray (0, 255) [0..255]
       keySchedule (s, j) (i, k) =
         let j' = j + s!i + k
         in (swapS s i j', j')
-      (state, _) = foldl keySchedule (initialS, 0) $ zip [0..255] keyBytes
+      (state, _) = foldl keySchedule (initialS, 0) $ zip [0..255] keyCycle
   in Arc4State state 0 0
 
 nextKeystreamByte :: Arc4State -> (Arc4State, Word8)
